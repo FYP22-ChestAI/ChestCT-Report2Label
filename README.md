@@ -102,6 +102,33 @@ That CSV needs a `ct_id` column plus one 0/1 column per label (see
 `configs/labels.yaml` for the exact 18 label names, in the order the
 classifier was trained on).
 
+## Notebooks
+
+`notebooks/` walks through the same pipeline interactively — useful for
+demoing results rather than reading raw JSON. They reuse the same venv as everything else:
+
+```bash
+pip install -e ".[notebooks]"     # or: pip install jupyterlab ipykernel nbconvert
+python -m ipykernel install --user --name report2label --display-name "Python (report2label)"
+jupyter lab notebooks/
+```
+
+Pick the "Python (report2label)" kernel when a notebook opens. Run them in
+order — `01` just sanity-checks the model, `02` runs the full pipeline over
+whatever is in `data/raw`/`data/outputs/predictions` and prints
+probabilities + evidence per report, `03`/`04` need
+`data/annotations/manual_labels.csv` to exist first.
+
+To hand someone a static, already-executed copy (no Jupyter install needed
+on their end) — re-run it headless and export to HTML:
+
+```bash
+jupyter nbconvert --to notebook --execute --inplace notebooks/02_test_reports.ipynb
+jupyter nbconvert --to html notebooks/02_test_reports.ipynb
+```
+
+That produces `notebooks/02_test_reports.html`, which opens in any browser.
+
 ## Configuration
 
 - `configs/labels.yaml` — the 18-label vocabulary, in classifier output order.
