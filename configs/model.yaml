@@ -1,0 +1,22 @@
+# RadBERT text-classification model configuration.
+# Base encoder: zzxslp/RadBERT-RoBERTa-4m (downloaded automatically via
+# transformers on first use, and cached locally by huggingface_hub).
+# Classification head: linear layer over the pooled [CLS] output, fine-tuned
+# by the CT-RATE authors on the same 18-label vocabulary as configs/labels.yaml.
+base_model: "zzxslp/RadBERT-RoBERTa-4m"
+
+# Local path to the fine-tuned classifier checkpoint (RadBertClassifier.pth).
+# This file is licensed under the CT-RATE dataset terms and is not
+# redistributed in this repository — download it yourself and place it here.
+checkpoint_path: "models/RadBertClassifier.pth"
+
+num_labels: 18
+max_length: 512
+do_lower_case: true
+
+# "auto" picks cuda when available, otherwise cpu.
+device: "auto"
+
+# Sigmoid probability threshold for a positive label.
+# Can be overridden per-label in pipeline.yaml if a class needs recalibration.
+default_threshold: 0.5

@@ -1,0 +1,43 @@
+paths:
+  raw_reports_dir: "data/raw"
+  processed_dir: "data/processed"
+  annotations_dir: "data/annotations"
+  predictions_dir: "data/outputs/predictions"
+  manifests_dir: "data/outputs/manifests"
+  scans_dir: "data/scans"
+
+ingestion:
+  supported_extensions: [".pdf", ".docx", ".txt"]
+
+# Header keywords used to segment a free-text report into sections.
+# Matching is case-insensitive and tolerant of trailing ":" / ":-" punctuation.
+sections:
+  headers:
+    indication: ["indication", "clinical indication", "history", "clinical history"]
+    technique: ["technique", "protocol"]
+    comparison: ["comparison"]
+    findings: ["findings"]
+    impression: ["impression", "conclusion", "opinion", "summary"]
+  # Section(s) concatenated to build the text handed to the classifier,
+  # in the same "findings + impression" style CT-RATE reports use.
+  classifier_input_sections: ["findings", "impression"]
+
+phi_removal:
+  enabled: true
+
+# Sentence-level evidence attribution for debugging predictions: each
+# section sentence is scored independently and the top-scoring sentences
+# per label are surfaced alongside the document-level probability.
+evidence:
+  enabled: true
+  max_sentences_per_label: 3
+  min_sentence_chars: 6
+
+# Per-label threshold overrides (label name -> float). Empty by default;
+# extraction/thresholding.py falls back to model.yaml's default_threshold.
+label_thresholds: {}
+
+matching:
+  # Non-alphanumeric characters stripped when comparing a report's CT ID
+  # to a scan filename/folder id.
+  id_normalize_pattern: "[^0-9A-Za-z]"

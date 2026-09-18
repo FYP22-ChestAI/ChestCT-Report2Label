@@ -1,2 +1,129 @@
 # ChestCT-Report2Label
-Automated extraction of CT-RATE-compatible 18-abnormality labels from radiology reports for local chest CT dataset construction.
+
+Extracts CT-RATE-compatible multi-abnormality labels from free-text chest CT
+radiology reports, so a local report archive can be turned into a labeled
+dataset without manual annotation from scratch.
+
+It reuses the same 18-abnormality vocabulary and the same fine-tuned RadBERT
+text classifier introduced by the [CT-RATE](https://huggingface.co/datasets/ibrahimhamamci/CT-RATE)
+dataset, so labels produced here line up with CT-RATE labels one-for-one.
+The pipeline itself is generic: it works on plain report text and makes no
+assumption about which institution, reporting system, or template a report
+came from.
+
+## Pipeline
+
+```
+raw report (PDF/DOCX/TXT)
+  -> ingestion        extract plain text
+  -> parsing          find the CT/accession id, split into sections
+  -> preprocessing    clean whitespace, strip identifying info, normalize text
+  -> extraction       RadBERT classifier -> per-label probability + evidence sentence
+  -> matching          (optional) link a report back to its CT scan by id
+  -> dataset          assemble + export the final labeled dataset
+```
+
+`validation/` compares predictions against a small manually annotated CSV and
+ranks the most confidently-wrong predictions for review — useful once you
+have a handful of hand-labeled reports to sanity-check against.
+
+## Setup (run on the machine that will actually do inference — e.g. your server, not necessarily where you edit code)
+
+1. Get the code onto that machine (clone/pull the repo, or copy it over), then
+   create an environment and install dependencies:
+
+   ```bash
+   cd ChestCT-Report2Label
+   python -m venv .venv
+   source .venv/bin/activate        # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2. Install the Hugging Face CLI, if it isn't already there:
+
+   ```bash
+   curl -LsSf https://hf.co/cli/install.sh | bash -s
+   ```
+
+3. Authenticate. You must have accepted the
+   [CT-RATE dataset's terms](https://huggingface.co/datasets/ibrahimhamamci/CT-RATE)
+   on huggingface.co first — the checkpoint is gated behind that.
+
+   ```bash
+   hf auth login
+   ```
+
+4. Download the fine-tuned classifier checkpoint straight into `models/` (run
+   from the repo root so `--local-dir .` lines up with the project layout):
+
+   ```bash
+   hf download ibrahimhamamci/CT-RATE models/RadBertClassifier.pth \
+       --repo-type dataset --local-dir .
+   ```
+
+   This lands the file at `models/RadBertClassifier.pth` (~500 MB, gitignored
+   — never commit it). The base encoder (`zzxslp/RadBERT-RoBERTa-4m`)
+   downloads separately and automatically the first time you run anything,
+   via `transformers`.
+
+5. Sanity-check the setup before touching any real reports:
+
+   ```bash
+   python scripts/test_model.py
+   ```
+
+   `configs/model.yaml` has `device: auto`, so this picks up a GPU
+   automatically if the machine has one — no config change needed.
+
+## Usage
+
+Drop report files into `data/raw/` (PDF, DOCX, or TXT), then run the scripts
+in order:
+
+```bash
+python scripts/extract_reports.py       # data/raw       -> data/processed
+python scripts/predict_labels.py        # data/processed -> data/outputs/predictions
+python scripts/match_ct_reports.py --scans-dir path/to/scans   # optional, if you have the scans
+python scripts/build_dataset.py         # -> data/outputs/dataset.csv / .json
+```
+
+Each prediction is saved as JSON with the probability, the binary label, and
+the top evidence sentence(s) the classifier scored highest for that label —
+`predict_labels.py` also writes a `_summary.csv` with one row per report and
+one column per label probability, for a quick spreadsheet-style scan.
+
+To check predictions against a small hand-labeled set:
+
+```bash
+python scripts/validate_predictions.py --annotations data/annotations/manual_labels.csv
+```
+
+That CSV needs a `ct_id` column plus one 0/1 column per label (see
+`configs/labels.yaml` for the exact 18 label names, in the order the
+classifier was trained on).
+
+## Configuration
+
+- `configs/labels.yaml` — the 18-label vocabulary, in classifier output order.
+- `configs/model.yaml` — base encoder, checkpoint path, max length, threshold.
+- `configs/pipeline.yaml` — I/O paths, section headers, PHI-removal toggle,
+  evidence settings, per-label threshold overrides.
+
+## Tests
+
+```bash
+pytest
+```
+
+Tests cover the pure-logic parts of the pipeline (parsing, preprocessing,
+thresholding, matching, dataset assembly) and don't require the classifier
+checkpoint or a GPU.
+
+## Attribution
+
+- Label vocabulary and classifier architecture: [CT-RATE](https://arxiv.org/abs/2403.17834) (Hamamci et al.).
+- Base language model: [RadBERT-RoBERTa-4m](https://huggingface.co/zzxslp/RadBERT-RoBERTa-4m) (Yan et al.).
+
+See [LICENSE](LICENSE) for this repository's license. The CT-RATE dataset and
+its pretrained checkpoints are separately licensed (CC-BY-NC-SA, gated) — you
+must accept those terms yourself to download `RadBertClassifier.pth`.
