@@ -59,6 +59,7 @@ def main() -> None:
         return
 
     summary_rows = []
+    label_rows = []
     for file_path in files:
         parsed = read_json(file_path)
         prediction = predictor.predict(
@@ -75,9 +76,26 @@ def main() -> None:
         row.update(prediction.probabilities)
         summary_rows.append(row)
 
+        if prediction.ct_id is None:
+            logger.warning("%s has no CT id — left out of labels.csv (see its JSON instead)", file_path.stem)
+        else:
+            label_rows.append(
+                {"ct_id": prediction.ct_id, **{name: prediction.labels[name] for name in label_vocab.names}}
+            )
+
     summary_path = output_dir / "_summary.csv"
     pd.DataFrame(summary_rows).to_csv(summary_path, index=False)
-    logger.info("Saved %d prediction(s) to %s (summary: %s)", len(files), output_dir, summary_path.name)
+
+    labels_path = output_dir / "labels.csv"
+    pd.DataFrame(label_rows, columns=["ct_id", *label_vocab.names]).to_csv(labels_path, index=False)
+
+    logger.info(
+        "Saved %d prediction(s) to %s (probabilities: %s, labels: %s)",
+        len(files),
+        output_dir,
+        summary_path.name,
+        labels_path.name,
+    )
 
 
 if __name__ == "__main__":

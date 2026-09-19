@@ -1,4 +1,4 @@
-from report2label.parsing.ct_id_parser import extract_ct_id, normalize_ct_id
+from report2label.parsing.ct_id_parser import extract_ct_id
 
 
 def test_extracts_ct_no_with_slash():
@@ -18,9 +18,3 @@ def test_extracts_exam_id_when_ct_no_absent():
 
 def test_returns_none_when_no_identifier_present():
     assert extract_ct_id("No identifiers appear in this report body.") is None
-
-
-def test_normalize_ct_id_strips_punctuation_and_uppercases():
-    assert normalize_ct_id("4215/26") == "421526"
-    assert normalize_ct_id("4215-26") == "421526"
-    assert normalize_ct_id("abc-123") == "ABC123"

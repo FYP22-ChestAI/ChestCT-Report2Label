@@ -36,9 +36,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default=str(PROJECT_ROOT / pipeline_config["paths"]["manifests_dir"] / "validation_report.json"),
+        default=None,
+        help="Where to write the validation report (default: next to the predictions dir).",
     )
     args = parser.parse_args()
+    output_path = args.output or str(Path(args.predictions_dir).parent / "validation_report.json")
 
     predictions = load_predictions(args.predictions_dir)
     metrics = evaluate_predictions(predictions, args.annotations, label_vocab.names)
@@ -63,8 +65,8 @@ def main() -> None:
             mismatch["probability"],
         )
 
-    write_json({"metrics": metrics, "mismatches": mismatches}, args.output)
-    logger.info("Full validation report saved to %s", args.output)
+    write_json({"metrics": metrics, "mismatches": mismatches}, output_path)
+    logger.info("Full validation report saved to %s", output_path)
 
 
 if __name__ == "__main__":

@@ -19,9 +19,11 @@ raw report (PDF/DOCX/TXT)
   -> parsing          find the CT/accession id, split into sections
   -> preprocessing    clean whitespace, strip identifying info, normalize text
   -> extraction       RadBERT classifier -> per-label probability + evidence sentence
-  -> matching          (optional) link a report back to its CT scan by id
-  -> dataset          assemble + export the final labeled dataset
+  -> labels.csv       one row per CT id, one 0/1 column per abnormality
 ```
+
+The output is keyed by CT id only (like CT-RATE's own label files) — scans
+live separately and are joined on that id by whoever consumes the labels.
 
 `validation/` compares predictions against a small manually annotated CSV and
 ranks the most confidently-wrong predictions for review — useful once you
@@ -83,14 +85,15 @@ in order:
 ```bash
 python scripts/extract_reports.py       # data/raw       -> data/processed
 python scripts/predict_labels.py        # data/processed -> data/outputs/predictions
-python scripts/match_ct_reports.py --scans-dir path/to/scans   # optional, if you have the scans
-python scripts/build_dataset.py         # -> data/outputs/dataset.csv / .json
 ```
 
 Each prediction is saved as JSON with the probability, the binary label, and
-the top evidence sentence(s) the classifier scored highest for that label —
-`predict_labels.py` also writes a `_summary.csv` with one row per report and
-one column per label probability, for a quick spreadsheet-style scan.
+the top evidence sentence(s) the classifier scored highest for that label.
+`predict_labels.py` also writes two CSVs next to them:
+
+- `labels.csv` — the dataset: `ct_id` plus one 0/1 column per label (reports
+  with no detectable CT id are skipped with a warning).
+- `_summary.csv` — per-label probabilities, for a quick spreadsheet-style scan.
 
 To check predictions against a small hand-labeled set:
 
@@ -143,7 +146,7 @@ pytest
 ```
 
 Tests cover the pure-logic parts of the pipeline (parsing, preprocessing,
-thresholding, matching, dataset assembly) and don't require the classifier
+thresholding, evidence selection) and don't require the classifier
 checkpoint or a GPU.
 
 ## Attribution

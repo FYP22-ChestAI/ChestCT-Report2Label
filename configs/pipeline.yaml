@@ -3,8 +3,6 @@ paths:
   processed_dir: "data/processed"
   annotations_dir: "data/annotations"
   predictions_dir: "data/outputs/predictions"
-  manifests_dir: "data/outputs/manifests"
-  scans_dir: "data/scans"
 
 ingestion:
   supported_extensions: [".pdf", ".docx", ".txt"]
@@ -36,8 +34,3 @@ evidence:
 # Per-label threshold overrides (label name -> float). Empty by default;
 # extraction/thresholding.py falls back to model.yaml's default_threshold.
 label_thresholds: {}
-
-matching:
-  # Non-alphanumeric characters stripped when comparing a report's CT ID
-  # to a scan filename/folder id.
-  id_normalize_pattern: "[^0-9A-Za-z]"

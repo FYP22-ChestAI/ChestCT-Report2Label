@@ -31,11 +31,7 @@ data/annotations/*
 !data/annotations/.gitkeep
 data/outputs/predictions/*
 !data/outputs/predictions/.gitkeep
-data/outputs/manifests/*
-!data/outputs/manifests/.gitkeep
-data/scans/*
-!data/scans/.gitkeep
-data/outputs/dataset.csv
-data/outputs/dataset.json
+data/outputs/*.csv
+data/outputs/*.json
 
 .env
