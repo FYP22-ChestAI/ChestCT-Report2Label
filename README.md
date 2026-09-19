@@ -87,6 +87,14 @@ python scripts/extract_reports.py       # data/raw       -> data/processed
 python scripts/predict_labels.py        # data/processed -> data/outputs/predictions
 ```
 
+`extract_reports.py` writes one JSON per report plus `data/processed/reports.csv`
+— the extracted report table, one row per report: `report_id`, `ct_id`, one
+column per configured section (`indication`, `technique`, `comparison`,
+`findings`, `impression`; empty if a report doesn't have it), and
+`report_text` (the exact text fed to the classifier). Columns follow
+`sections.headers` in `configs/pipeline.yaml`, so adding a section there adds
+a column.
+
 Each prediction is saved as JSON with the probability, the binary label, and
 the top evidence sentence(s) the classifier scored highest for that label.
 `predict_labels.py` also writes two CSVs next to them:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from report2label.preprocessing.cleaner import clean_text
 from report2label.preprocessing.normalizer import normalize_text
@@ -28,6 +29,20 @@ class ParsedReport:
             "classifier_text": self.classifier_text,
             "raw_char_count": self.raw_char_count,
         }
+
+    def to_row(self, section_names: list[str]) -> dict:
+        """Flat single-line-per-cell row for the reports CSV.
+
+        Columns follow `section_names` (the configured sections), so the table
+        shape doesn't depend on which headers any particular report happened
+        to print — a missing section is just an empty cell.
+        """
+        one_line = lambda text: " ".join(text.split())
+        row = {"report_id": Path(self.source_path).stem, "ct_id": self.ct_id}
+        for name in section_names:
+            row[name] = one_line(self.sections.get(name, ""))
+        row["report_text"] = one_line(self.classifier_text)
+        return row
 
 
 def parse_report(

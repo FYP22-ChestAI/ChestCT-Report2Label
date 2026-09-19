@@ -1,4 +1,4 @@
-"""Ingest raw reports (PDF/DOCX/TXT) into cleaned, section-split JSON.
+"""Ingest raw reports (PDF/DOCX/TXT) into cleaned, section-split JSON plus a reports.csv.
 
     python scripts/extract_reports.py [--input-dir data/raw] [--output-dir data/processed]
 """
@@ -11,6 +11,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+import pandas as pd
 
 from report2label.ingestion import read_report_file
 from report2label.parsing.report_parser import parse_report
@@ -45,6 +47,8 @@ def main() -> None:
     classifier_input_sections = pipeline_config["sections"]["classifier_input_sections"]
     phi_removal_enabled = pipeline_config["phi_removal"]["enabled"]
 
+    section_names = list(section_headers)
+    rows = []
     for file_path in files:
         raw_text = read_report_file(file_path)
         parsed = parse_report(
@@ -56,9 +60,12 @@ def main() -> None:
         )
         out_path = output_dir / f"{file_path.stem}.json"
         write_json(parsed.to_dict(), out_path)
+        rows.append(parsed.to_row(section_names))
         logger.info("%s -> ct_id=%s -> %s", file_path.name, parsed.ct_id, out_path.name)
 
-    logger.info("Processed %d report(s) into %s", len(files), output_dir)
+    reports_path = output_dir / "reports.csv"
+    pd.DataFrame(rows).to_csv(reports_path, index=False)
+    logger.info("Processed %d report(s) into %s (table: %s)", len(files), output_dir, reports_path.name)
 
 
 if __name__ == "__main__":
